@@ -9,7 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/workouts")
+@RequestMapping("/api/workout")
 public class WorkoutController {
 
     private final WorkoutService workoutService;

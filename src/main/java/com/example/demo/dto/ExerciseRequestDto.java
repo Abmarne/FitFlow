@@ -3,6 +3,7 @@ package com.example.demo.dto;
 import com.example.demo.entity.ExerciseType;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -14,5 +15,13 @@ public class ExerciseRequestDto {
 
     @Min(1)
     private int sets;
+
+    @NotNull
     private ExerciseType type;
+
+    @Min(1)
+    private Integer reps;
+
+    @Min(1)
+    private Integer duration;
 }

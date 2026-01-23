@@ -9,7 +9,7 @@ import lombok.*;
 @Table(name = "exercises")
 @NoArgsConstructor
 @AllArgsConstructor
-public class Exercise {
+public class Exercise{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -20,7 +20,11 @@ public class Exercise {
     @Column(nullable = false)
     private int sets;
 
+    private Integer reps;
+    private Integer duration;
+
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private ExerciseType type;
 
     @ManyToOne(fetch = FetchType.LAZY)

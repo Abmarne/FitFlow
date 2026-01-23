@@ -11,4 +11,6 @@ public class ExerciseResponseDto {
     private String name;
     private int sets;
     private ExerciseType workoutType;
+    private Integer reps;
+    private Integer duration;
 }
