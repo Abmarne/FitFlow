@@ -1,112 +1,175 @@
 import { useState } from "react";
-import 
 
 function WorkoutBuilder() {
-  // Workout state
-  const [workoutName, setWorkoutName] = useState("");
+  const [title, settitle] = useState("");
+  const [workoutId, setWorkoutId] = useState(null);
+  const [savingWorkout, setSavingWorkout] = useState(false);
 
-  // Exercise input state
-  const [exerciseName, setExerciseName] = useState("");
+  const [name, setName] = useState("");
   const [sets, setSets] = useState("");
   const [value, setValue] = useState("");
-  const [mode, setMode] = useState("reps"); // reps | time
+  const [type, setType] = useState("reps"); // reps | time
 
-  // Added exercises
   const [exercises, setExercises] = useState([]);
 
-  function addExercise() {
-    if (!exerciseName || !sets) return;
+  async function saveWorkout() {
+    if (!title) return;
 
-    const newExercise = {
-      id: Date.now(),
-      name: exerciseName,
+    try {
+      setSavingWorkout(true);
+
+      const res = await fetch("http://localhost:8080/api/workout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: title }),
+      });
+
+      const data = await res.json();
+      setWorkoutId(data.id); 
+    } catch (err) {
+      console.error("Failed to create workout", err);
+    } finally {
+      setSavingWorkout(false);
+    }
+  }
+
+  async function addExercise() {
+    if (!name || !sets || !workoutId) return;
+    
+    let payload;
+    
+    if (type === "reps") {
+     payload = {
+      name: name,
       sets: Number(sets),
-      mode,
-      value: mode === "reps" ? Number(value || 0) : Number(value || 0),
+      type: "REP_BASED",
+      reps: Number(value),
+      duration: null,
+     };
+    } else {
+      payload = {
+      name: name,
+      sets: Number(sets),
+      type: "TIME_BASED",
+      reps: null,
+      duration: Number(value),
     };
+  }
 
-    setExercises([...exercises, newExercise]);
+    try {
+      const res = await fetch(`http://localhost:8080/api/workout/${workoutId}/exercises`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    // reset inputs
-    setExerciseName("");
-    setSets("");
-    setValue("");
+      if(!res.ok){
+        const errorText = await res.text();
+        console.error("Failed to add exercise :",errorText);
+        return;
+      }
+
+      setExercises(prev => [...prev,payload]);
+
+      setName("");
+      setSets("");
+      setValue("");
+    } catch (err) {
+      console.error("Failed to add exercise", err);
+    }
   }
 
   return (
     <div style={styles.wrapper}>
-      {/* Workout name */}
       <h2 style={styles.title}>
-        {workoutName || "Create Workout"}
+        {title || "Create Workout"}
       </h2>
 
       <input
         style={styles.workoutInput}
         placeholder="Workout name (e.g. Chest & Triceps Day)"
-        value={workoutName}
-        onChange={(e) => setWorkoutName(e.target.value)}
+        value={title}
+        onChange={(e) => settitle(e.target.value)}
+        readOnly={!!workoutId}
       />
 
-      {/* Add exercise */}
-      <div style={styles.card}>
-        <h4>Add New Exercise</h4>
-
-        <input
-          style={styles.input}
-          placeholder="Exercise name"
-          value={exerciseName}
-          onChange={(e) => setExerciseName(e.target.value)}
-        />
-
-        <div style={styles.row}>
-          <input
-            style={styles.input}
-            placeholder="Sets"
-            type="number"
-            value={sets}
-            onChange={(e) => setSets(e.target.value)}
-          />
-
-          <input
-            style={styles.input}
-            placeholder={mode === "reps" ? "Target reps" : "Seconds"}
-            type="number"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-          />
-        </div>
-
-        {/* Mode toggle */}
-        <div style={styles.mode}>
-          <button
-            style={mode === "reps" ? styles.activeMode : styles.modeBtn}
-            onClick={() => setMode("reps")}
-          >
-            Reps Based
-          </button>
-          <button
-            style={mode === "time" ? styles.activeMode : styles.modeBtn}
-            onClick={() => setMode("time")}
-          >
-            Time Based
-          </button>
-        </div>
-
-        <button style={styles.addBtn} onClick={addExercise}>
-          + Add to Workout
+      {!workoutId && (
+        <button
+          style={styles.primaryBtn}
+          onClick={saveWorkout}
+          disabled={savingWorkout}
+        >
+          {savingWorkout ? "Saving..." : "Save Workout"}
         </button>
+      )}
+
+      <div style={{ position: "relative", marginTop: "24px" }}>
+        <div style={styles.card}>
+          <h4>Add New Exercise</h4>
+
+          <input
+            style={styles.input}
+            placeholder="Exercise name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+
+          <div style={styles.row}>
+            <input
+              style={styles.input}
+              type="number"
+              placeholder="Sets"
+              value={sets}
+              onChange={(e) => setSets(e.target.value)}
+            />
+
+            <input
+              style={styles.input}
+              type="number"
+              placeholder={type === "reps" ? "Target reps" : "Seconds"}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+            />
+          </div>
+
+          <div style={styles.type}>
+            <button
+              style={type === "reps" ? styles.activeMode : styles.typeBtn}
+              onClick={() => setType("reps")}
+            >
+              Reps Based
+            </button>
+            <button
+              style={type === "time" ? styles.activeMode : styles.typeBtn}
+              onClick={() => setType("time")}
+            >
+              Time Based
+            </button>
+          </div>
+
+          <button style={styles.addBtn} onClick={addExercise}>
+            + Add to Workout
+          </button>
+        </div>
+
+        {!workoutId && (
+          <div style={styles.lockOverlay}>
+            <p style={styles.lockText}>
+              Save workout to start adding exercises
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Added exercises */}
       <div style={styles.list}>
-        {exercises.map((ex) => (
-          <div key={ex.id} style={styles.exerciseItem}>
+        {exercises.map((ex, index) => (
+          <div key={index} style={styles.exerciseItem}>
             <strong>{ex.name}</strong>
             <span>
               {ex.sets} sets •{" "}
-              {ex.mode === "reps"
-                ? `${ex.value} reps`
-                : `${ex.value} sec`}
+              {ex.type === "REP_BASED"
+                ? `${ex.reps} reps`
+                : `${ex.duration} sec`}
             </span>
           </div>
         ))}
@@ -116,3 +179,129 @@ function WorkoutBuilder() {
 }
 
 export default WorkoutBuilder;
+
+const styles = {
+  wrapper: {
+    maxWidth: "600px",
+    margin: "0 auto",
+    paddingTop: "80px",
+    color: "white",
+  },
+
+  title: {
+    fontSize: "1.8rem",
+    marginBottom: "12px",
+  },
+
+  workoutInput: {
+    width: "100%",
+    padding: "14px",
+    borderRadius: "12px",
+    border: "none",
+    background: "rgba(255,255,255,0.08)",
+    color: "white",
+    marginBottom: "12px",
+  },
+
+  primaryBtn: {
+    width: "100%",
+    padding: "14px",
+    borderRadius: "12px",
+    border: "none",
+    background: "#6366f1",
+    color: "white",
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+
+  card: {
+    background: "rgba(255,255,255,0.05)",
+    padding: "20px",
+    borderRadius: "16px",
+  },
+
+  input: {
+    width: "100%",
+    padding: "12px",
+    borderRadius: "10px",
+    border: "none",
+    background: "rgba(255,255,255,0.08)",
+    color: "white",
+    marginBottom: "12px",
+  },
+
+  row: {
+    display: "flex",
+    gap: "12px",
+  },
+
+   type: {
+    display: "flex",
+    gap: "10px",
+    marginBottom: "14px",
+  },
+
+  typeBtn: {
+    flex: 1,
+    padding: "10px",
+    background: "rgba(255,255,255,0.08)",
+    border: "none",
+    borderRadius: "10px",
+    color: "white",
+    cursor: "pointer",
+  },
+
+  activeMode: {
+    flex: 1,
+    padding: "10px",
+    background: "#6366f1",
+    border: "none",
+    borderRadius: "10px",
+    color: "white",
+  },
+
+  addBtn: {
+    width: "100%",
+    padding: "14px",
+    borderRadius: "12px",
+    background: "#6366f1",
+    border: "none",
+    color: "white",
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+
+  lockOverlay: {
+    position: "absolute",
+    inset: 0,
+    background: "rgba(0,0,0,0.65)",
+    backdropFilter: "blur(2px)",
+    borderRadius: "16px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2,
+  },
+
+  lockText: {
+    fontSize: "14px",
+    opacity: 0.85,
+    background: "rgba(255,255,255,0.08)",
+    padding: "10px 16px",
+    borderRadius: "999px",
+  },
+
+  list: {
+    marginTop: "24px",
+  },
+
+  exerciseItem: {
+    padding: "14px",
+    borderRadius: "12px",
+    background: "rgba(255,255,255,0.05)",
+    marginBottom: "10px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px",
+  },
+};

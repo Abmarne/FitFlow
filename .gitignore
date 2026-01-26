@@ -26,4 +26,5 @@ firebase-service-account.json
 
 # Environment variables
 .env
+application-prod.properties
 
